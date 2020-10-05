@@ -3,7 +3,8 @@
 """
 Created on Mon Oct  5 10:34:46 2020
 
-@author: local
+@author: Hannah Xu
+@Credit to: https://towardsdatascience.com/how-to-build-efficient-audio-data-pipelines-with-tensorflow-2-0-b3133474c3c1
 """
 
 import pandas as pd
