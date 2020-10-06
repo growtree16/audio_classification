@@ -23,7 +23,7 @@ def get_dataset(df):
 def load_audio(file_path, label):
     # Load one second of audio at 44.1kHz sample-rate
     audio = tf.io.read_file(file_path)
-    audio, sample_rate = tf.audio.decode_wav(audio, desired_channels=1, desired_samples=16000)
+    audio, sample_rate = tf.audio.decode_wav(audio, desired_channels=1, desired_samples=160)
     return audio, label
 
 
@@ -42,9 +42,17 @@ def prepare_for_training(ds, shuffle_buffer_size=1024, batch_size=64):
     return ds
 
 
+def get_compiled_model():
+    model = tf.keras.Sequential([tf.keras.layers.Dense(10, activation='relu'),tf.keras.layers.Dense(10, activation='relu'),\
+                                         tf.keras.layers.Dense(1)])
+    model.compile(optimizer='adam',loss=tf.keras.losses.BinaryCrossentropy(from_logits=True), metrics=['accuracy'])
+        
+    return model
+
+
 def main():
     # Load meta.csv containing file-paths and labels as pd.DataFrame
-    df = pd.read_csv('audio_list.csv')
+    df = pd.read_csv('audio_list100.csv')
     
     ds = get_dataset(df)
     train_ds = prepare_for_training(ds)
@@ -58,8 +66,7 @@ def main():
     model = tf.keras.Sequential()
     model.add(tf.keras.layers.Dense(160, activation='relu'))
     model.add(tf.keras.layers.Dense(1, activation='sigmoid'))
-    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-    #model = tf.keras.models.load_model('/Users/local/Desktop/Voice/model.h5')
+    model = get_compiled_model()
     model.fit(train_ds, epochs=100, steps_per_epoch=train_steps)
 
 

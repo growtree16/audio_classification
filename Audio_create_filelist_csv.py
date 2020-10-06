@@ -15,7 +15,7 @@ audio = os.path.join(dir_path, 'animal_sounds')
 audio_ds = pathlib.Path(audio)
 list_ds = tf.data.Dataset.list_files(str(audio_ds/'*/*'))
 
-unique_labels = ['dog', 'cat', 'bird']
+unique_labels = ['dog', 'cat', 'bird', '_background_noise_']
 
 index = 0
 record = {}
@@ -25,7 +25,7 @@ for label in unique_labels:
     
     
 df = pd.DataFrame(columns = ['file_path', 'label'])
-for f in list_ds:
+for f in list_ds.take(500):
     temp = str(f.numpy())
     label = record[temp.split('/')[-2]]
     file_name = temp[1:]
@@ -34,4 +34,4 @@ for f in list_ds:
 print (df.shape)
     
     
-df.to_csv('audio_list.csv')
+df.to_csv('audio_list500.csv', index = False)
