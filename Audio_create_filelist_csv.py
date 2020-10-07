@@ -10,15 +10,15 @@ import pathlib
 import os
 import pandas as pd
 from sklearn.model_selection import train_test_split
-import random
+#import random
 #random.seed(1)
 
 
 def get_dataset_filepath_and_label(dir_path):
-    audio = os.path.join(dir_path, 'animal_sounds')
+    audio = os.path.join(dir_path, 'speech_commands_v0.01')
+    unique_labels = [item for item in os.listdir(audio) if os.path.isdir(os.path.join(audio, item))]
     audio_ds = pathlib.Path(audio)
     list_ds = tf.data.Dataset.list_files(str(audio_ds/'*/*'))
-    unique_labels = ['dog', 'cat', 'bird', '_background_noise_']
     
     index = 0
     record = {}
@@ -37,11 +37,11 @@ def get_dataset_filepath_and_label(dir_path):
     
     return df
 
-def get_dataset_filepath_and_label_train_test_split(dir_path):
-    audio = os.path.join(dir_path, 'animal_sounds')
+def get_dataset_filepath_and_label_train_test_split(dir_path, test_size = 0.3):
+    audio = os.path.join(dir_path, 'speech_commands_v0.01')
+    unique_labels = [item for item in os.listdir(audio) if os.path.isdir(os.path.join(audio, item))]
     audio_ds = pathlib.Path(audio)
     list_ds = tf.data.Dataset.list_files(str(audio_ds/'*/*'))
-    unique_labels = ['dog', 'cat', 'bird', '_background_noise_']
     
     index = 0
     record = {}
@@ -57,7 +57,7 @@ def get_dataset_filepath_and_label_train_test_split(dir_path):
         row = pd.Series([file_name, label], index = ['file_path', 'label'])
         df = df.append(row, ignore_index=True) 
         
-    df_train, df_test = train_test_split(df, test_size=0.3)
+    df_train, df_test = train_test_split(df, test_size=test_size)
     
     return df_train, df_test
 
