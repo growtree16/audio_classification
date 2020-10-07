@@ -15,7 +15,7 @@ from sklearn.model_selection import train_test_split
 
 
 def get_dataset_filepath_and_label(dir_path):
-    audio = os.path.join(dir_path, 'speech_commands_v0.01')
+    audio = os.path.join(dir_path, 'animal_sounds')
     unique_labels = [item for item in os.listdir(audio) if os.path.isdir(os.path.join(audio, item))]
     audio_ds = pathlib.Path(audio)
     list_ds = tf.data.Dataset.list_files(str(audio_ds/'*/*'))
@@ -38,7 +38,7 @@ def get_dataset_filepath_and_label(dir_path):
     return df
 
 def get_dataset_filepath_and_label_train_test_split(dir_path, test_size = 0.3):
-    audio = os.path.join(dir_path, 'speech_commands_v0.01')
+    audio = os.path.join(dir_path, 'animal_sounds')
     unique_labels = [item for item in os.listdir(audio) if os.path.isdir(os.path.join(audio, item))]
     audio_ds = pathlib.Path(audio)
     list_ds = tf.data.Dataset.list_files(str(audio_ds/'*/*'))

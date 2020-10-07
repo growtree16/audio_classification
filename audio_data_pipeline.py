@@ -158,5 +158,5 @@ def main(option):
 
 
 if __name__ == '__main__':
-    option = 'RNN'
+    option = 'CNN'
     main(option)
