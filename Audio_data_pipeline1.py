@@ -8,10 +8,11 @@ Created on Mon Oct  5 20:54:54 2020
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.python.ops import io_ops
+from tensorflow.keras import layers, models
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
 import pandas as pd
-from tensorflow.keras import datasets, layers, models
 import matplotlib.pyplot as plt
-AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 
 def load_wav_file(filename):
@@ -28,8 +29,7 @@ def load_wav_file(filename):
     wav_loader = io_ops.read_file(wav_filename_placeholder)
     wav_decoder = tf.audio.decode_wav(wav_loader, desired_channels=1)
     data = sess.run(wav_decoder, feed_dict={wav_filename_placeholder: filename}).audio.flatten()
-    #print (len(data))
-    #print (data.dtype)
+    
     return data
 
 def get_dataset(filepath):
@@ -44,9 +44,11 @@ def get_dataset(filepath):
     df_feature.columns=columns[:10000]
     df_feature['label'] = df['label']
     
+    df_feature = df_feature.fillna(0.0)
+    
     return df_feature
 
-def get_compiled_model():
+def get_FC_model():
     model = tf.keras.Sequential([
         tf.keras.layers.Dense(10000, activation='relu'),
         tf.keras.layers.Dense(1000, activation='relu'),
@@ -58,7 +60,7 @@ def get_compiled_model():
     return model
 
 
-def get_compiled_CNN_model():
+def get_CNN_model():
     model = models.Sequential()
     model.add(tf.keras.layers.Reshape((100, 100, 1), input_shape=(10000,)))
     model.add(layers.Conv2D(128, (3, 3), activation='relu', input_shape=(100, 100, 1)))
@@ -75,33 +77,86 @@ def get_compiled_CNN_model():
         
     return model
 
-
-def main():
+def get_RNN_model():
+    model = keras.Sequential()
+    # Add an Embedding layer expecting input vocab of size 1000, and
+    # output embedding dimension of size 64.
+    model.add(layers.Embedding(input_dim=10000, output_dim=64))
+    # Add a LSTM layer with 128 internal units.
+    model.add(layers.LSTM(128))
+    # Add a Dense layer with 10 units.
+    model.add(layers.Dense(10))
+    model.summary()
+    model.compile(loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True), optimizer="sgd", metrics=["accuracy"])
     
+    return model
 
-    ds = get_dataset('audio_list500.csv')
 
-    target = ds.pop('label')
-    dataset = tf.data.Dataset.from_tensor_slices((ds.values, target.values))
-    train_dataset = dataset.shuffle(len(ds)).batch(1)
-    print (dataset)
-    print (train_dataset)
-    
-    model = get_compiled_CNN_model()
-    history = model.fit(train_dataset, epochs=15)
-    # plot loss during training
-    plt.figure(figsize = (16, 6))
-    plt.subplot(211)
-    plt.title('Loss')
-    plt.plot(history.history['loss'], label='train')
-    plt.legend()
-    # plot accuracy during training
-    plt.subplot(212)
-    plt.title('Accuracy')
-    plt.plot(history.history['accuracy'], label='train')
-    plt.legend()
+def learning_curve_plotting(history):
+    # summarize history for accuracy
+    plt.plot(history.history['accuracy'])
+    plt.plot(history.history['val_accuracy'])
+    plt.title('model accuracy')
+    plt.ylabel('accuracy')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
     plt.show()
+    # summarize history for loss
+    # plt.plot(history.history['loss'])
+    # plt.plot(history.history['val_loss'])
+    # plt.title('model loss')
+    # plt.ylabel('loss')
+    # plt.xlabel('epoch')
+    # plt.legend(['train', 'test'], loc='upper left')
+    plt.show()
+    plt.savefig('learning_curve.jpg')
+
+
+def main(option):
+    
+
+    ds_train = get_dataset('audio_list_train.csv')
+    ds_test = get_dataset('audio_list_test.csv')
+    target_train = ds_train.pop('label')
+    target_test = ds_test.pop('label')
+    
+    if option == 'RF':
+        clf = RandomForestClassifier()
+        clf.fit(ds_train, target_train)
+        pred_test = clf.predict(ds_test)
+        print (accuracy_score(target_test, pred_test))
+        
+    elif option == 'FC':
+        train_dataset = tf.data.Dataset.from_tensor_slices((ds_train.values, target_train.values))
+        train_dataset = train_dataset.shuffle(len(ds_train)).batch(1)
+        test_dataset = tf.data.Dataset.from_tensor_slices((ds_test.values, target_test.values))
+        test_dataset = test_dataset.shuffle(len(ds_test)).batch(1)
+        model = get_FC_model()
+        history = model.fit(train_dataset, validation_data = test_dataset, epochs=15)
+        learning_curve_plotting(history)
+
+    elif option == 'CNN':
+        train_dataset = tf.data.Dataset.from_tensor_slices((ds_train.values, target_train.values))
+        train_dataset = train_dataset.shuffle(len(ds_train)).batch(1)
+        test_dataset = tf.data.Dataset.from_tensor_slices((ds_test.values, target_test.values))
+        test_dataset = test_dataset.shuffle(len(ds_test)).batch(1)
+        model = get_CNN_model()
+        history = model.fit(train_dataset, validation_data = test_dataset, epochs=15)
+        learning_curve_plotting(history)
+        
+    elif option == 'RNN':
+        train_dataset = tf.data.Dataset.from_tensor_slices((ds_train.values, target_train.values))
+        train_dataset = train_dataset.shuffle(len(ds_train)).batch(1)
+        test_dataset = tf.data.Dataset.from_tensor_slices((ds_test.values, target_test.values))
+        test_dataset = test_dataset.shuffle(len(ds_test)).batch(1)
+        model = get_RNN_model()
+        history = model.fit(train_dataset, validation_data = test_dataset, epochs=15)
+        learning_curve_plotting(history)
+        
+    else:
+        print ('Invaid model option')
 
 
 if __name__ == '__main__':
-    main()
+    option = 'RNN'
+    main(option)
