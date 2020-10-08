@@ -8,11 +8,39 @@ Created on Mon Oct  5 20:54:54 2020
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.python.ops import io_ops
+import pathlib
+import os
 from tensorflow.keras import layers, models
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
 import pandas as pd
 import matplotlib.pyplot as plt
+
+
+def get_dataset_filepath_and_label_train_test_split(dir_path, test_size = 0.3):
+    audio = os.path.join(dir_path, 'animal_sounds')
+    unique_labels = [item for item in os.listdir(audio) if os.path.isdir(os.path.join(audio, item))]
+    audio_ds = pathlib.Path(audio)
+    list_ds = tf.data.Dataset.list_files(str(audio_ds/'*/*'))
+    
+    index = 0
+    record = {}
+    for label in unique_labels:
+        record[label] = index
+        index += 1        
+        
+    df = pd.DataFrame(columns = ['file_path', 'label'])
+    for f in list_ds.take(50):
+        filepath = str(f.numpy())
+        label = record[filepath.split('/')[-2]]
+        file_name = filepath[1:]
+        row = pd.Series([file_name, label], index = ['file_path', 'label'])
+        df = df.append(row, ignore_index=True) 
+        
+    df_train, df_test = train_test_split(df, test_size=test_size)
+    
+    return df_train, df_test
 
 
 def load_wav_file(filename):
@@ -32,8 +60,7 @@ def load_wav_file(filename):
     
     return data
 
-def get_dataset(filepath):
-    df = pd.read_csv(filepath)
+def get_dataset(df):
     df['feature_ds'] = df['file_path'].apply(lambda x: x[1:-1]).apply(load_wav_file)
     num_of_features = 10000#len(df.head(1).feature_ds.values[0])
     columns = []
@@ -114,9 +141,12 @@ def learning_curve_plotting(history):
 
 def main(option):
     
-
-    ds_train = get_dataset('audio_list_train.csv')
-    ds_test = get_dataset('audio_list_test.csv')
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    df_train, df_test = get_dataset_filepath_and_label_train_test_split(dir_path)
+    ds_train = get_dataset(df_train)
+    ds_test = get_dataset(df_test)
+    #df_train.to_csv('audio_list_train.csv')
+    #df_test.to_csv('audio_list_test.csv')
     target_train = ds_train.pop('label')
     target_test = ds_test.pop('label')
     
